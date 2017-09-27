@@ -1,0 +1,27 @@
+{
+    "manifest_version": 2,
+    "name": "iSAMS XLS Reports to Sheets",
+    "short_name": "iSAMS Sheets",
+    "description": "This extension allows iSAMS lists to be directly opened into a browser window (rather than downloaded)",
+    "version": "1.0.3",
+    "icons": {
+        "16": "icon16.png",
+        "48": "icon48.png",
+        "128": "icon128.png"
+    },
+    "permissions": ["tabs", "https://*.isams.cloud/*"],
+    "content_scripts" : [
+        {
+            "matches" : [
+                "https://*.isams.cloud/modules/teachingmanager/wizards/listswizard*",
+                "https://*.isams.cloud/legacy/modules/teachingmanager/wizards/listswizard*",
+                "https://*.isams.cloud/Legacy/system/common/nicedownload*",
+                "https://*.isams.cloud/modules/timetablemanager/wizards/spreadsheetwizard*",
+                "https://*.isams.cloud/modules/schoolmanagement/wizard/schoolwizard*"],
+            "js" : [
+                "script.js"
+            ]
+        }
+    ],
+    "web_accessible_resources": ["open.js", "FileSaver.js"]
+}
