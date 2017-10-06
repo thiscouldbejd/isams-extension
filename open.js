@@ -57,7 +57,26 @@ var __links = document.getElementsByTagName("a");
 for (var i = 0; i < __links.length; i++) {
     
 
-    if (__links[i].hasAttribute("href") && __links[i].getAttribute("href").indexOf("actionforcedownload.asp") === 0) { // Handles More General Reports
+    if (__links[i].hasAttribute("href") && __links[i].getAttribute("href").indexOf("actionforcedownload.aspx") > 0 && __links[i].getAttribute("href").indexOf(".xls") > 0) { // Handles Grade Matrix / Totals Downloads
+    
+        var _element = __links[i];
+        var _url = __links[i].getAttribute("href");
+        _url = _url.substring(_url.indexOf("actionforcedownload.aspx"));
+        _url = _url.substring(0, _url.lastIndexOf("'"));
+        _url = "https://" + window.location.hostname + "/Legacy/system/common/" + _url;
+
+        // Log the URL to the Console.
+        console.log("LIST DOWNLAD URL: ", _url);
+                
+        // Remove the default handler
+        _element.setAttribute("href", "#");
+
+        // Add the new handler
+        _element.addEventListener("click", ___handler(_url));
+        
+        break;
+        
+    } else if (__links[i].hasAttribute("href") && __links[i].getAttribute("href").indexOf("actionforcedownload.asp") === 0) { // Handles More General Reports
     
         var _element = __links[i];
         var _url = __links[i].getAttribute("href");
