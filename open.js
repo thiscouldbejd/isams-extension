@@ -1,4 +1,12 @@
-var ___handler = function(target_url) {
+var load_Handler = function(callback) {
+    if (document.readyState!="loading") callback();
+    else if (document.addEventListener) document.addEventListener("DOMContentLoaded", callback);
+    else document.attachEvent("onreadystatechange", function(){
+        if (document.readyState=="complete") callback();
+    });
+};
+
+var silent_Handler = function(target_url) {
     return function() {
         
         
@@ -16,13 +24,12 @@ var ___handler = function(target_url) {
             }
         };
 
-        xhr.open('GET', target_url);
+        xhr.open("GET", target_url);
         xhr.send();
     };
 };
 
-
-var __handler = function(target_url) {
+var click_Handler = function(target_url) {
     return function() {
         
         let xhr = new XMLHttpRequest();
@@ -50,93 +57,165 @@ var __handler = function(target_url) {
     }
 };
 
-// -- Grab all the Link Elements to check -- //
-var __links = document.getElementsByTagName("a");
-
-// -- Look through looking for our specified element -- //
-for (var i = 0; i < __links.length; i++) {
+load_Handler(function() { 
+  
+  var _window = window.location.href;
+  
+  if (/legacy\/system\/framework\/desktop.asp/i.test(_window)) {
     
-
-    if (__links[i].hasAttribute("href") && __links[i].getAttribute("href").indexOf("actionforcedownload.aspx") > 0 && __links[i].getAttribute("href").indexOf(".xls") > 0) { // Handles Grade Matrix / Totals Downloads
-    
-        var _element = __links[i];
-        var _url = __links[i].getAttribute("href");
-        _url = _url.substring(_url.indexOf("actionforcedownload.aspx"));
-        _url = _url.substring(0, _url.lastIndexOf("'"));
-        _url = "https://" + window.location.hostname + "/Legacy/system/common/" + _url;
-
-        // Log the URL to the Console.
-        console.log("LIST DOWNLAD URL: ", _url);
-                
-        // Remove the default handler
-        _element.setAttribute("href", "#");
-
-        // Add the new handler
-        _element.addEventListener("click", ___handler(_url));
-        
-        break;
-        
-    } else if (__links[i].hasAttribute("href") && __links[i].getAttribute("href").indexOf("actionforcedownload.asp") === 0) { // Handles More General Reports
-    
-        var _element = __links[i];
-        var _url = __links[i].getAttribute("href");
-        _url = "https://" + window.location.hostname + "/Legacy/system/common/" + _url;
-        
-        // Log the URL to the Console.
-        console.log("LIST DOWNLAD URL: ", _url);
-                
-        // Remove the default handler
-        _element.setAttribute("href", "#");
-
-        // Add the new handler
-        _element.addEventListener("click", ___handler(_url));
-        
-        break;
-        
-    } else if (__links[i].hasAttribute("title") && __links[i].getAttribute("href") == "#" && (
-            __links[i].textContent == "CLICK HERE to Download the Microsoft Excel Document containing the Report" || // Handles Set Lists Exports
-            __links[i].textContent == "Download Excel Timetable" // Handles Timetable Exports
-        )) {
-    
-        var _element = __links[i].parentElement;
-        
-        while (_element && _element.nodeName != "TR") {
-            _element= _element.parentElement;
-        }
-        
-        if (_element && _element.hasAttribute("onclick")) {
-            var _command = _element.getAttribute("onclick");
-            var _match = new RegExp("'([^' ]*)'", "g");
-            var _matches = _match.exec(_command);
-            var _url;
-            if (_matches && _matches.length > 0) {
-                for (var j = 0; j < _matches.length; j++) {
-                    if (_matches[j].indexOf("/Legacy/") === 0) { // Full Legacy Generate
-                        _url = _matches[j].replace(new RegExp("x2F", "g"), "/").replace(/\\/g, "");
-                        _url = "https://" + window.location.hostname + _url;
-                        break;
-                    } else if (_matches[j].indexOf("x2Ffiles") === 1) { // Timetable Manager Generate
-                        _url = _matches[j].replace(new RegExp("x2F", "g"), "/").replace(/\\/g, "");
-                        _url = "https://" + window.location.hostname + _url;
-                        break;
-                    }
-                }
+    try {
+      
+      // -- Parse all the Daily Bulletin Links -- //
+      var ID = "bulletinlist",
+          IDS = "bulletin",
+          IFRAME = "/legacy/system/framework/desktop.asp",
+        _handle_Item = function(item) {
+          var _divs = item.getElementsByTagName("div");
+          for (var i = 0; i < _divs.length; i++) {
+            var __urls = _divs[i].innerText.match(/https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b([-a-zA-Z0-9@:%_\+.~#?&\/\/=]*)/gi);
+            if (__urls) {
+              for (var j = 0; j < __urls.length; j++) {
+                _divs[i].innerHTML = _divs[i].innerHTML
+                  .replace(__urls[j], '<a style="color:red;" href="' + __urls[j] + '" target="_blank">' + __urls[j] +'</a>');
+              }
             }
-            if (_url) {
-                
-                // Log the URL to the Console.
-                console.log("LIST DOWNLAD URL: ", _url);
-                
-                // Remove the default handler
-                _element.removeAttribute("onclick");
+          }
+        },
+        _handle_Bulletin = function(bulletin) {
+          var _items = bulletin.getElementsByTagName("tr");
+          for (var i = 0; i < _items.length; i++) _handle_Item(_items[i]);
+        };
 
-                // Add the new handler
-                _element.addEventListener("click", ___handler(_url));
-                
-            }
-            
-        }
+      var __bulletin = document.getElementById(ID);
+      
+      if (__bulletin && __bulletin.childNodes.length >= 1 && __bulletin.childNodes[0].nodeName == "TABLE" ) {
         
-        break;
+        _handle_Bulletin(__bulletin);
+
+      } else {
+
+        var config = {
+          childList: true
+          , subtree: true
+          , attributes: false
+          , characterData: false
+        };
+
+        var observer = new MutationObserver(function(mutations) {
+          mutations.forEach(function(mutation) {
+            if (!mutation.addedNodes) return
+            for (var i = 0; i < mutation.addedNodes.length; i++) {
+              var node = mutation.addedNodes[i];
+              if (node.id == ID || (node.parentNode && node.parentNode.id == ID)) {
+                _handle_Bulletin(node);
+              } else if (node.nodeName == "TD" && node.id && node.id.startsWith(IDS)) {
+                _handle_Item(node);
+              } else if (node.nodeName == "TABLE" && node.classList.contains("LinedList")) {
+                _handle_Bulletin(node);
+              }
+            }
+          })
+        });
+
+        observer.observe(document.body, config);
+
+      }
+      
+    } catch (e) {
     }
-}
+    
+  }
+
+  // -- Grab all the Link Elements to check -- //
+  var __links = document.getElementsByTagName("a");
+
+  // -- Look through looking for our specified element -- //
+  for (var i = 0; i < __links.length; i++) {
+
+      if (__links[i].hasAttribute("href") && __links[i].getAttribute("href").indexOf("actionforcedownload.aspx") > 0 && __links[i].getAttribute("href").indexOf(".xls") > 0) { // Handles Grade Matrix / Totals Downloads
+
+          var _element = __links[i];
+          var _url = __links[i].getAttribute("href");
+          _url = _url.substring(_url.indexOf("actionforcedownload.aspx"));
+          _url = _url.substring(0, _url.lastIndexOf("'"));
+          _url = "https://" + window.location.hostname + "/Legacy/system/common/" + _url;
+
+          // Log the URL to the Console.
+          console.log("LIST DOWNLAD URL: ", _url);
+
+          // Remove the default handler
+          _element.setAttribute("href", "#");
+
+          // Add the new handler
+          _element.addEventListener("click", silent_Handler(_url));
+
+          break;
+
+      } else if (__links[i].hasAttribute("href") && __links[i].getAttribute("href").indexOf("actionforcedownload.asp") === 0) { // Handles More General Reports
+
+          var _element = __links[i];
+          var _url = __links[i].getAttribute("href");
+          _url = "https://" + window.location.hostname + "/Legacy/system/common/" + _url;
+
+          // Log the URL to the Console.
+          console.log("LIST DOWNLAD URL: ", _url);
+
+          // Remove the default handler
+          _element.setAttribute("href", "#");
+
+          // Add the new handler
+          _element.addEventListener("click", silent_Handler(_url));
+
+          break;
+
+      } else if (__links[i].hasAttribute("title") && __links[i].getAttribute("href") == "#" && (
+              __links[i].textContent == "CLICK HERE to Download the Microsoft Excel Document containing the Report" || // Handles Set Lists Exports
+              __links[i].textContent == "Download Excel Timetable" // Handles Timetable Exports
+          )) {
+
+          var _element = __links[i].parentElement;
+
+          while (_element && _element.nodeName != "TR") {
+              _element= _element.parentElement;
+          }
+
+          if (_element && _element.hasAttribute("onclick")) {
+              var _command = _element.getAttribute("onclick");
+              var _match = new RegExp("'([^' ]*)'", "g");
+              var _matches = _match.exec(_command);
+              var _url;
+              if (_matches && _matches.length > 0) {
+                  for (var j = 0; j < _matches.length; j++) {
+                      if (_matches[j].indexOf("/Legacy/") === 0) { // Full Legacy Generate
+                          _url = _matches[j].replace(new RegExp("x2F", "g"), "/").replace(/\\/g, "");
+                          _url = "https://" + window.location.hostname + _url;
+                          break;
+                      } else if (_matches[j].indexOf("x2Ffiles") === 1) { // Timetable Manager Generate
+                          _url = _matches[j].replace(new RegExp("x2F", "g"), "/").replace(/\\/g, "");
+                          _url = "https://" + window.location.hostname + _url;
+                          break;
+                      }
+                  }
+              }
+              if (_url) {
+
+                  // Log the URL to the Console.
+                  console.log("LIST DOWNLAD URL: ", _url);
+
+                  // Remove the default handler
+                  _element.removeAttribute("onclick");
+
+                  // Add the new handler
+                  _element.addEventListener("click", silent_Handler(_url));
+
+              }
+
+          }
+
+          break;
+      }
+  }
+  
+});
+
+

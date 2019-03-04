@@ -3,7 +3,7 @@
     "name": "iSAMS XLS Reports to Sheets",
     "short_name": "iSAMS Sheets",
     "description": "This extension allows iSAMS lists to be directly opened into a browser window (rather than downloaded)",
-    "version": "1.0.4",
+    "version": "1.0.5",
     "icons": {
         "16": "icon16.png",
         "48": "icon48.png",
@@ -19,8 +19,10 @@
                 "https://*.isams.cloud/modules/timetablemanager/wizards/spreadsheetwizard*",
                 "https://*.isams.cloud/modules/schoolmanagement/wizard/schoolwizard*",
                 "https://*.isams.cloud/modules/examinationsmanager/results/reports/gradematrix*",
-                "https://*.isams.cloud/modules/examinationsmanager/results/reports/totalsmatrix*"
+              	"https://*.isams.cloud/modules/examinationsmanager/results/reports/totalsmatrix*",
+              	"https://*.isams.cloud/legacy/system/framework/desktop.asp"
             ],
+          	"all_frames": true,
             "js" : [
                 "script.js"
             ]
