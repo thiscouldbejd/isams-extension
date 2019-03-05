@@ -61,67 +61,99 @@ load_Handler(function() {
   
   var _window = window.location.href;
   
-  if (/legacy\/system\/framework\/desktop.asp/i.test(_window)) {
+  if (/legacy\/system\/framework\/desktop.asp/i.test(_window) ||
+      /modules\/dailybulletin\/bulletin\/bulletinlist.asp/i.test(_window)) {
     
     try {
       
       // -- Parse all the Daily Bulletin Links -- //
       var ID = "bulletinlist",
+          DATA = "datadiv",
           IDS = "bulletin",
-          IFRAME = "/legacy/system/framework/desktop.asp",
         _handle_Item = function(item) {
           var _divs = item.getElementsByTagName("div");
+          if (!_divs || _divs.length === 0) _divs = item.getElementsByTagName("TD");
           for (var i = 0; i < _divs.length; i++) {
-            var __urls = _divs[i].innerText.match(/https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b([-a-zA-Z0-9@:%_\+.~#?&\/\/=]*)/gi);
-            if (__urls) {
-              for (var j = 0; j < __urls.length; j++) {
-                _divs[i].innerHTML = _divs[i].innerHTML
-                  .replace(__urls[j], '<a style="color:red;" href="' + __urls[j] + '" target="_blank">' + __urls[j] +'</a>');
+            var __text = _divs[i].innerText;
+            if (__text) {
+              var __urls = __text.match(/\[([^"]+)\]\((https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b([-a-zA-Z0-9@:%_\+.~#?&\/\/=]*))\)/gi), __expand = false;
+              if (!__urls) {
+                __urls = _divs[i].innerText.match(/https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b([-a-zA-Z0-9@:%_\+.~#?&\/\/=]*)/gi);
+              } else {
+                __expand = true;
+              }
+              if (__urls) {
+                for (var j = 0; j < __urls.length; j++) {
+                  var __substitute = false;
+                  if (__expand) {
+                    var __matches = __urls[j].match(/\[([^"]+)\]\((https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b([-a-zA-Z0-9@:%_\+.~#?&\/\/=]*))\)/i);
+                    if (__matches.length >= 3) {
+                      __substitute = '<a style="color:red;" href="' + __matches[2] + '" target="_blank">' + __matches[1] +'</a>';
+                    }
+                  } else {
+                    __substitute = '<a style="color:red;" href="' + __urls[j] + '" target="_blank">' + __urls[j] +'</a>';
+                  }
+                  if (__substitute) _divs[i].innerHTML = _divs[i].innerHTML
+                    .replace(__urls[j], __substitute);
+                }
               }
             }
           }
         },
         _handle_Bulletin = function(bulletin) {
-          var _items = bulletin.getElementsByTagName("tr");
+          var _items = bulletin.getElementsByTagName("TR");
           for (var i = 0; i < _items.length; i++) _handle_Item(_items[i]);
         };
 
       var __bulletin = document.getElementById(ID);
       
-      if (__bulletin && __bulletin.childNodes.length >= 1 && __bulletin.childNodes[0].nodeName == "TABLE" ) {
+      if (__bulletin && __bulletin.childNodes.length >= 1 && 
+          (__bulletin.childNodes[0].nodeName == "TABLE")) {
         
         _handle_Bulletin(__bulletin);
 
       } else {
 
-        var config = {
-          childList: true
-          , subtree: true
-          , attributes: false
-          , characterData: false
-        };
+        __bulletin = document.getElementById(DATA);
+        
+        if (__bulletin && __bulletin.getElementsByTagName("table") && 
+            __bulletin.getElementsByTagName("table").length >= 1) {
+            
+          _handle_Bulletin(__bulletin);
+          
+        } else {
+          
+          var config = {
+            childList: true
+            , subtree: true
+            , attributes: false
+            , characterData: false
+          };
 
-        var observer = new MutationObserver(function(mutations) {
-          mutations.forEach(function(mutation) {
-            if (!mutation.addedNodes) return
-            for (var i = 0; i < mutation.addedNodes.length; i++) {
-              var node = mutation.addedNodes[i];
-              if (node.id == ID || (node.parentNode && node.parentNode.id == ID)) {
-                _handle_Bulletin(node);
-              } else if (node.nodeName == "TD" && node.id && node.id.startsWith(IDS)) {
-                _handle_Item(node);
-              } else if (node.nodeName == "TABLE" && node.classList.contains("LinedList")) {
-                _handle_Bulletin(node);
+          var observer = new MutationObserver(function(mutations) {
+            mutations.forEach(function(mutation) {
+              if (!mutation.addedNodes) return
+              for (var i = 0; i < mutation.addedNodes.length; i++) {
+                var node = mutation.addedNodes[i];
+                if (node.id == ID || (node.parentNode && node.parentNode.id == ID)) {
+                  _handle_Bulletin(node);
+                } else if (node.nodeName == "TD" && node.id && node.id.startsWith(IDS)) {
+                  _handle_Item(node);
+                } else if (node.nodeName == "TABLE" && node.classList.contains("LinedList")) {
+                  _handle_Bulletin(node);
+                }
               }
-            }
-          })
-        });
+            })
+          });
 
-        observer.observe(document.body, config);
+          observer.observe(document.body, config);
 
+        }
+        
       }
       
     } catch (e) {
+      console.log("iSAMS Extension", e);
     }
     
   }
