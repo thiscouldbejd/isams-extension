@@ -62,7 +62,8 @@ load_Handler(function() {
   var _window = window.location.href;
   
   if (/legacy\/system\/framework\/desktop.asp/i.test(_window) ||
-      /modules\/dailybulletin\/bulletin\/bulletinlist.asp/i.test(_window)) {
+      /modules\/dailybulletin\/bulletin\/bulletinlist.asp/i.test(_window) ||
+     	/legacy\/system\/dashboard/i.test(_window)) {
     
     try {
       
@@ -70,15 +71,13 @@ load_Handler(function() {
       var ID = "bulletinlist",
           DATA = "datadiv",
           IDS = "bulletin",
-        _handle_Item = function(item) {
-          var _divs = item.getElementsByTagName("div");
-          if (!_divs || _divs.length === 0) _divs = item.getElementsByTagName("TD");
-          for (var i = 0; i < _divs.length; i++) {
-            var __text = _divs[i].innerText;
+        _handle_Items = function(items) {
+          for (var i = 0; i < items.length; i++) {
+            var __text = items[i].innerText;
             if (__text) {
               var __urls = __text.match(/\[([^"]+)\]\((https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b([-a-zA-Z0-9@:%_\+.~#?&\/\/=]*))\)/gi), __expand = false;
               if (!__urls) {
-                __urls = _divs[i].innerText.match(/https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b([-a-zA-Z0-9@:%_\+.~#?&\/\/=]*)/gi);
+                __urls = items[i].innerText.match(/https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b([-a-zA-Z0-9@:%_\+.~#?&\/\/=]*)/gi);
               } else {
                 __expand = true;
               }
@@ -93,16 +92,29 @@ load_Handler(function() {
                   } else {
                     __substitute = '<a style="color:red;" href="' + __urls[j] + '" target="_blank">' + __urls[j] +'</a>';
                   }
-                  if (__substitute) _divs[i].innerHTML = _divs[i].innerHTML
+                  if (__substitute) items[i].innerHTML = items[i].innerHTML
                     .replace(__urls[j], __substitute);
                 }
               }
             }
           }
         },
+        _handle_Item = function(item) {
+          var _divs = item.getElementsByTagName("div");
+          if (!_divs || _divs.length === 0) _divs = item.getElementsByTagName("TD");
+          _handle_Items(_divs);
+        },
         _handle_Bulletin = function(bulletin) {
           var _items = bulletin.getElementsByTagName("TR");
-          for (var i = 0; i < _items.length; i++) _handle_Item(_items[i]);
+          if ((!_items || _items.length === 0) && document.querySelectorAll) {
+            _handle_Items(bulletin.querySelectorAll("div.body"));
+            bulletin.querySelectorAll("div.title").forEach(function(node) {
+            	node.style.overflow = "hidden";                                        
+            });
+            //overflow: hidden;
+          } else {
+            for (var i = 0; i < _items.length; i++) _handle_Item(_items[i]);
+          }
         };
 
       var __bulletin = document.getElementById(ID);
@@ -123,6 +135,11 @@ load_Handler(function() {
           
         } else {
           
+          if (document.querySelectorAll) 
+            __bulletin = document.querySelectorAll("tab[name='Daily Bulletin'] div.content.list")
+          
+          if (__bulletin.length >= 1) _handle_Bulletin(__bulletin);
+
           var config = {
             childList: true
             , subtree: true
@@ -141,13 +158,20 @@ load_Handler(function() {
                   _handle_Item(node);
                 } else if (node.nodeName == "TABLE" && node.classList.contains("LinedList")) {
                   _handle_Bulletin(node);
+                } else if (node.nodeName == "WIDGET" && 
+                           node.parentElement.getAttribute("name") == "Daily Bulletin") {
+                  _handle_Bulletin(node);
+                } else if (node.nodeName == "DIV" && 
+                           node.classList.contains("widget") &&
+                           node.parentElement.parentElement.getAttribute("name") == "Daily Bulletin") {
+                  _handle_Bulletin(node);
                 }
               }
             })
           });
 
           observer.observe(document.body, config);
-
+          
         }
         
       }
@@ -190,7 +214,7 @@ load_Handler(function() {
           _url = "https://" + window.location.hostname + "/Legacy/system/common/" + _url;
 
           // Log the URL to the Console.
-          console.log("LIST DOWNLAD URL: ", _url);
+          console.log("LIST DOWNLOAD URL: ", _url);
 
           // Remove the default handler
           _element.setAttribute("href", "#");
@@ -219,12 +243,22 @@ load_Handler(function() {
               if (_matches && _matches.length > 0) {
                   for (var j = 0; j < _matches.length; j++) {
                       if (_matches[j].indexOf("/Legacy/") === 0) { // Full Legacy Generate
-                          _url = _matches[j].replace(new RegExp("x2F", "g"), "/").replace(/\\/g, "");
+                        	console.log("ORIGINAL URL: ", _matches[j]);
+                          _url = _matches[j]
+                            	.replace(new RegExp("x252F", "g"), "/")
+                            	.replace(new RegExp("x2F", "g"), "/")
+                            	.replace(/\\/g, "");
                           _url = "https://" + window.location.hostname + _url;
+                        	console.log("TRANSFORMED URL: ", _url);
                           break;
                       } else if (_matches[j].indexOf("x2Ffiles") === 1) { // Timetable Manager Generate
-                          _url = _matches[j].replace(new RegExp("x2F", "g"), "/").replace(/\\/g, "");
+                        	console.log("ORIGINAL URL: ", _matches[j]);
+                          _url = _matches[j]
+                        			.replace(new RegExp("x252F", "g"), "/")
+                            	.replace(new RegExp("x2F", "g"), "/")
+                            	.replace(/\\/g, "");
                           _url = "https://" + window.location.hostname + _url;
+                        	console.log("TRANSFORMED URL: ", _url);
                           break;
                       }
                   }
