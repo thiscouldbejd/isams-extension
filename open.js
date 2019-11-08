@@ -54,132 +54,163 @@ var click_Handler = function(target_url) {
 
         xhr.open('GET', target_url);
         xhr.send();
-    }
+    };
 };
 
-load_Handler(function() { 
+load_Handler(function() {
   
   var _window = window.location.href;
   
-  if (/legacy\/system\/framework\/desktop.asp/i.test(_window) ||
-      /modules\/dailybulletin\/bulletin\/bulletinlist.asp/i.test(_window) ||
-     	/legacy\/system\/dashboard/i.test(_window)) {
+  if (
+    /legacy\/system\/framework\/desktop.asp/i.test(_window) ||
+    /modules\/dailybulletin\/bulletin\/bulletinlist.asp/i.test(_window) ||
+    /legacy\/system\/dashboard/i.test(_window) ||
+    /modules\/pupilprofiles/i.test(_window) ||
+    /senmanager\/register\/list.asp/i.test(_window) ||
+    /senmanager\/register\/printpreview.asp/i.test(_window)) {
     
-    try {
-      
-      // -- Parse all the Daily Bulletin Links -- //
-      var ID = "bulletinlist",
-          DATA = "datadiv",
-          IDS = "bulletin",
-        _handle_Items = function(items) {
-          for (var i = 0; i < items.length; i++) {
-            var __text = items[i].innerText;
-            if (__text) {
-              var __urls = __text.match(/\[([^"]+)\]\((https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b([-a-zA-Z0-9@:%_\+.~#?&\/\/=]*))\)/gi), __expand = false;
-              if (!__urls) {
-                __urls = items[i].innerText.match(/https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b([-a-zA-Z0-9@:%_\+.~#?&\/\/=]*)/gi);
-              } else {
-                __expand = true;
-              }
-              if (__urls) {
-                for (var j = 0; j < __urls.length; j++) {
-                  var __substitute = false;
-                  if (__expand) {
-                    var __matches = __urls[j].match(/\[([^"]+)\]\((https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b([-a-zA-Z0-9@:%_\+.~#?&\/\/=]*))\)/i);
-                    if (__matches.length >= 3) {
-                      __substitute = '<a style="color:red;" href="' + __matches[2] + '" target="_blank">' + __matches[1] +'</a>';
-                    }
-                  } else {
-                    __substitute = '<a style="color:red;" href="' + __urls[j] + '" target="_blank">' + __urls[j] +'</a>';
-                  }
-                  if (__substitute) items[i].innerHTML = items[i].innerHTML
-                    .replace(__urls[j], __substitute);
+    var _handle_Items = function(items) {
+      for (var i = 0; i < items.length; i++) {
+        var __text = items[i].innerText;
+        if (__text) {
+          var __urls = __text.match(/\[([^"]+)\]\((https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b([-a-zA-Z0-9@:%_\+.~#?&\/\/=]*))\)/gi), __expand = false;
+          if (!__urls) {
+            __urls = items[i].innerText.match(/https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b([-a-zA-Z0-9@:%_\+.~#?&\/\/=]*)/gi);
+          } else {
+            __expand = true;
+          }
+          if (__urls) {
+            for (var j = 0; j < __urls.length; j++) {
+              var __substitute = false;
+              if (__expand) {
+                var __matches = __urls[j].match(/\[([^"]+)\]\((https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b([-a-zA-Z0-9@:%_\+.~#?&\/\/=]*))\)/i);
+                if (__matches.length >= 3) {
+                  __substitute = '<a style="color:red;" href="' + __matches[2] + '" target="_blank">' + __matches[1] +'</a>';
                 }
+              } else {
+                __substitute = '<a style="color:red;" href="' + __urls[j] + '" target="_blank">' + __urls[j] +'</a>';
               }
+              if (__substitute) items[i].innerHTML = items[i].innerHTML.replace(__urls[j], __substitute);
             }
           }
-        },
-        _handle_Item = function(item) {
-          var _divs = item.getElementsByTagName("div");
-          if (!_divs || _divs.length === 0) _divs = item.getElementsByTagName("TD");
-          _handle_Items(_divs);
-        },
-        _handle_Bulletin = function(bulletin) {
-          var _items = bulletin.getElementsByTagName("TR");
-          if ((!_items || _items.length === 0) && document.querySelectorAll) {
-            _handle_Items(bulletin.querySelectorAll("div.body"));
-            bulletin.querySelectorAll("div.title").forEach(function(node) {
-            	node.style.overflow = "hidden";                                        
-            });
-            //overflow: hidden;
-          } else {
-            for (var i = 0; i < _items.length; i++) _handle_Item(_items[i]);
-          }
-        };
-
-      var __bulletin = document.getElementById(ID);
-      
-      if (__bulletin && __bulletin.childNodes.length >= 1 && 
-          (__bulletin.childNodes[0].nodeName == "TABLE")) {
-        
-        _handle_Bulletin(__bulletin);
-
-      } else {
-
-        __bulletin = document.getElementById(DATA);
-        
-        if (__bulletin && __bulletin.getElementsByTagName("table") && 
-            __bulletin.getElementsByTagName("table").length >= 1) {
-            
-          _handle_Bulletin(__bulletin);
-          
-        } else {
-          
-          if (document.querySelectorAll) 
-            __bulletin = document.querySelectorAll("tab[name='Daily Bulletin'] div.content.list")
-          
-          if (__bulletin.length >= 1) _handle_Bulletin(__bulletin);
-
-          var config = {
-            childList: true
-            , subtree: true
-            , attributes: false
-            , characterData: false
-          };
-
-          var observer = new MutationObserver(function(mutations) {
-            mutations.forEach(function(mutation) {
-              if (!mutation.addedNodes) return
-              for (var i = 0; i < mutation.addedNodes.length; i++) {
-                var node = mutation.addedNodes[i];
-                if (node.id == ID || (node.parentNode && node.parentNode.id == ID)) {
-                  _handle_Bulletin(node);
-                } else if (node.nodeName == "TD" && node.id && node.id.startsWith(IDS)) {
-                  _handle_Item(node);
-                } else if (node.nodeName == "TABLE" && node.classList.contains("LinedList")) {
-                  _handle_Bulletin(node);
-                } else if (node.nodeName == "WIDGET" && 
-                           node.parentElement.getAttribute("name") == "Daily Bulletin") {
-                  _handle_Bulletin(node);
-                } else if (node.nodeName == "DIV" && 
-                           node.classList.contains("widget") &&
-                           node.parentElement.parentElement.getAttribute("name") == "Daily Bulletin") {
-                  _handle_Bulletin(node);
-                }
-              }
-            })
-          });
-
-          observer.observe(document.body, config);
-          
         }
+      }
+    };
+    
+    try {
         
+      if (/senmanager\/register\/list.asp/i.test(_window)) {
+      
+        _handle_Items(document.querySelectorAll("table tbody tr td table tbody tr td table tbody tr td"));
+        
+      } else if (/modules\/pupilprofiles\/profile\/index/i.test(_window)) {
+          
+          var d = document;
+          var _check = function() {
+              try {
+                  var a = d.querySelectorAll("td[title='SEND Register Notes:']");
+                  if (a && a.length == 1) {
+                      _handle_Items(a[0].parentNode.getElementsByTagName("TD"));
+                  }
+                  else {
+                      setTimeout(_check, 1000);
+                  }
+              }
+              catch (e) {
+                  console.log("iSAMS Extension", e);
+              }
+          };
+      
+          if (d.querySelectorAll) setTimeout(_check, 1000);
+      
+      } else {
+       
+          // -- Parse all the Daily Bulletin Links -- //
+          var ID = "bulletinlist",
+              DATA = "datadiv",
+              IDS = "bulletin",
+            _handle_Item = function(item) {
+              var _divs = item.getElementsByTagName("div");
+              if (!_divs || _divs.length === 0) _divs = item.getElementsByTagName("TD");
+              _handle_Items(_divs);
+            },
+            _handle_Bulletin = function(bulletin) {
+              var _items = bulletin.getElementsByTagName("TR");
+              if ((!_items || _items.length === 0) && document.querySelectorAll) {
+                _handle_Items(bulletin.querySelectorAll("div.body"));
+                bulletin.querySelectorAll("div.title").forEach(function(node) {
+                	node.style.overflow = "hidden";
+                });
+                //overflow: hidden;
+              } else {
+                for (var i = 0; i < _items.length; i++) _handle_Item(_items[i]);
+              }
+            };
+    
+          var __bulletin = document.getElementById(ID);
+          
+          if (__bulletin && __bulletin.childNodes.length >= 1 &&
+              (__bulletin.childNodes[0].nodeName == "TABLE")) {
+            
+            _handle_Bulletin(__bulletin);
+    
+          } else {
+    
+            __bulletin = document.getElementById(DATA);
+            
+            if (__bulletin && __bulletin.getElementsByTagName("table") &&
+                __bulletin.getElementsByTagName("table").length >= 1) {
+                
+              _handle_Bulletin(__bulletin);
+              
+            } else {
+              
+              if (document.querySelectorAll)
+                __bulletin = document.querySelectorAll("tab[name='Daily Bulletin'] div.content.list");
+              
+              if (__bulletin.length >= 1) _handle_Bulletin(__bulletin);
+    
+              var config = {
+                childList: true
+                , subtree: true
+                , attributes: false
+                , characterData: false
+              };
+    
+              var observer = new MutationObserver(function(mutations) {
+                mutations.forEach(function(mutation) {
+                  if (!mutation.addedNodes) return
+                  for (var i = 0; i < mutation.addedNodes.length; i++) {
+                    var node = mutation.addedNodes[i];
+                    if (node.id == ID || (node.parentNode && node.parentNode.id == ID)) {
+                      _handle_Bulletin(node);
+                    } else if (node.nodeName == "TD" && node.id && node.id.startsWith(IDS)) {
+                      _handle_Item(node);
+                    } else if (node.nodeName == "TABLE" && node.classList.contains("LinedList")) {
+                      _handle_Bulletin(node);
+                    } else if (node.nodeName == "WIDGET" &&
+                               node.parentElement.getAttribute("name") == "Daily Bulletin") {
+                      _handle_Bulletin(node);
+                    } else if (node.nodeName == "DIV" &&
+                               node.classList.contains("widget") &&
+                               node.parentElement.parentElement.getAttribute("name") == "Daily Bulletin") {
+                      _handle_Bulletin(node);
+                    }
+                  }
+                })
+              });
+    
+              observer.observe(document.body, config);
+              
+            }
+            
+          }
       }
       
     } catch (e) {
       console.log("iSAMS Extension", e);
     }
-    
+      
   }
 
   // -- Grab all the Link Elements to check -- //
@@ -283,5 +314,3 @@ load_Handler(function() {
   }
   
 });
-
-
